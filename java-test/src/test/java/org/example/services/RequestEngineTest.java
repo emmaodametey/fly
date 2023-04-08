@@ -1,14 +1,10 @@
 package org.example.services;
 
-import org.example.employees.Employees;
 import org.example.vm.Desktop;
-import org.junit.Assert;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -18,23 +14,23 @@ class RequestEngineTest {
     @Mock
     AuthorisingService authorisingServiceMock;
     @Mock
-    Desktop desktop;
-    @Mock
-    Employees employees;
-    @Mock SystemBuildService systemBuildServiceMock;
+    SystemBuildService systemBuildServiceMock;
 
-    @InjectMocks
-    RequestEngine newRequest = new RequestEngine();
+    RequestEngine newRequest;
+    Desktop windows;
+
+//    @InjectMocks
+//    RequestEngine newRequest = new RequestEngine();
 
     @BeforeEach
     void setUp() {
-        employees = mock(Employees.class);
-        desktop = mock(Desktop.class);
-        newRequest.setUserLogonName("Emma");
-
-        MockitoAnnotations.openMocks(this);
-
-        when(employees.isEntitlement()).thenReturn(true);
+        authorisingServiceMock = mock(AuthorisingService.class);
+        systemBuildServiceMock = mock(SystemBuildService.class);
+        newRequest = new RequestEngine(authorisingServiceMock, systemBuildServiceMock);
+        windows = mock(Desktop.class);
+        windows = new Desktop("hostname", "Emma", 4, 8,
+                1,10, "123");
+       // MockitoAnnotations.openMocks(this);
     }
 
     @AfterEach
@@ -45,26 +41,24 @@ class RequestEngineTest {
 
     @Test
     void createNewRequestDoesNotThrowExceptionsTest() throws UserNotEntitledException, MachineNotCreatedException{
-        when(authorisingServiceMock.isAuthorised(newRequest.getUserLogonName())).thenReturn(true);
-        when(desktop.getName()).thenReturn("Windows");
-        when(systemBuildServiceMock.createNewMachine(desktop)).thenReturn("Windows" +
-                "");
+        when(authorisingServiceMock.isAuthorised(windows.getRequester())).thenReturn(true);
+        when(systemBuildServiceMock.createNewMachine(windows)).thenReturn("Windows");
 
 
-        assertDoesNotThrow(()-> newRequest.createNewRequest(desktop));
+        assertDoesNotThrow(()-> newRequest.createNewRequest(windows));
         assertTrue(newRequest.totalBuildsByUserForDay().size() > 0);
     }
 
     @Test
     void createNewRequestThrowsMachineNotCreatedExceptionTest() throws MachineNotCreatedException{
-        when(authorisingServiceMock.isAuthorised(newRequest.getUserLogonName())).thenReturn(true);
-        when(systemBuildServiceMock.createNewMachine(desktop)).thenReturn(null);
-        assertThrows(MachineNotCreatedException.class, ()-> newRequest.createNewRequest(desktop));
+        when(authorisingServiceMock.isAuthorised(windows.getRequester())).thenReturn(true);
+        when(systemBuildServiceMock.createNewMachine(windows)).thenReturn(null);
+        assertThrows(MachineNotCreatedException.class, ()-> newRequest.createNewRequest(windows));
     }
     @Test
     void createNewRequestMachineThrowsUserNotEntitledExceptionTest() throws UserNotEntitledException, MachineNotCreatedException{
-        when(authorisingServiceMock.isAuthorised(newRequest.getUserLogonName())).thenReturn(false);
-        assertThrows(UserNotEntitledException.class, ()-> newRequest.createNewRequest(desktop));
+        when(authorisingServiceMock.isAuthorised(windows.getRequester())).thenReturn(false);
+        assertThrows(UserNotEntitledException.class, ()-> newRequest.createNewRequest(windows));
     }
 
 
@@ -72,7 +66,7 @@ class RequestEngineTest {
     @Test
     void totalBuildsByUserForDay() throws MachineNotCreatedException, UserNotEntitledException {
         createNewRequestDoesNotThrowExceptionsTest();
-        verify(systemBuildServiceMock, times(2)).createNewMachine(desktop);
+        verify(systemBuildServiceMock, times(2)).createNewMachine(windows);
         assertTrue(newRequest.totalBuildsByUserForDay().size() == 1);
     }
 
@@ -87,6 +81,6 @@ class RequestEngineTest {
     void numberOfMachinesForUserPerMachineTest() throws MachineNotCreatedException, UserNotEntitledException {
         createNewRequestDoesNotThrowExceptionsTest();
         createNewRequestDoesNotThrowExceptionsTest();
-        assertTrue(newRequest.numberOfMachinesForUserPerMachine("Emma", desktop.getName()) == 2);
+        assertTrue(newRequest.numberOfMachinesForUserPerMachine("Emma", windows.getName()) == 2);
     }
 }

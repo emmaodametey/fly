@@ -3,7 +3,7 @@ package org.example.vm;
 public class Desktop extends VirtualMachine{
     private int microsoftWindowsVersion;
     private String buildNumber;
-    private String name = "Desktop";
+    private String name = "Windows";
 
     public Desktop(String hostName, String requester, int numberOfCpu,
                    int sizeOfRam, int sizeOfHardDisk, int microsoftWindowsVersion, String buildNumber) {
@@ -15,4 +15,6 @@ public class Desktop extends VirtualMachine{
     public String getName() {
         return name;
     }
+
+
 }

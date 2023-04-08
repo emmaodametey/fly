@@ -6,41 +6,34 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class RequestEngine implements VirtualMachineRequestor{
-    private String userLogonName;
     private AuthorisingService authorisingService;
     private SystemBuildService systemBuildService;
     private Map<String, Map<String, Integer>> successfulBuilds;
     private Map<String, Integer>  failedbuilds;
 
 
-    public RequestEngine() {
+    public RequestEngine(AuthorisingService authorisingService, SystemBuildService systemBuildService) {
+        this.authorisingService = authorisingService;
+        this.systemBuildService = systemBuildService;
         successfulBuilds = new HashMap<>();
         failedbuilds = new HashMap<>();
     }
 
-    public void setUserLogonName(String userLogonName) {
-        this.userLogonName = userLogonName;
-    }
-
     @Override
-    public void createNewRequest(VirtualMachine machine) throws IllegalArgumentException, UserNotEntitledException, MachineNotCreatedException {
-        if(!authorisingService.isAuthorised(this.userLogonName)){
+    public void createNewRequest(VirtualMachine machine) throws UserNotEntitledException, MachineNotCreatedException {
+        if(!authorisingService.isAuthorised(machine.getRequester())){
            throw new UserNotEntitledException("User not entitled");
         }
+
         if(systemBuildService.createNewMachine(machine) == null){
-            addUserToFailedBuilds(this.userLogonName);
+            addUserToFailedBuilds(machine.getRequester());
             throw new MachineNotCreatedException("Cannot create machine");
         }else {
-            addUserToSuccessfulBuilds(this.userLogonName, systemBuildService.createNewMachine(machine));
+            addUserToSuccessfulBuilds(machine.getRequester(), systemBuildService.createNewMachine(machine));
         }
 
 
     }
-
-    public String getUserLogonName() {
-        return userLogonName;
-    }
-
     @Override
     public Map<String, Map<String, Integer>> totalBuildsByUserForDay() {
         return successfulBuilds;
